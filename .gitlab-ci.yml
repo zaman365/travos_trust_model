@@ -1,0 +1,62 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  SRC: "/var/www/trustlab/src"
+  SRC_RM: "/var/www/trustlab/src/*"
+  DBKEY_SCRIPT: "/var/www/trustlab/dbkey.sh"
+  MEDIA_PRE: "/var/www/trustlab/src/deploy/trustlab/media"
+  MEDIA_POST: "/var/www/trustlab/src/deploy/trustlab/"
+  MEDIATMP_PRE: "/tmp/trustlabMedia"
+  MEDIATMP_POST: "/tmp/trustlabMedia/media"
+
+
+build:
+  stage: build
+  tags:
+  - trustlab
+  script:
+  - . $DBKEY_SCRIPT
+  - sudo /bin/systemctl stop trustlab_host.service
+  - sudo /bin/systemctl stop daphne@trustlab.service
+  - /bin/rm -rf $MEDIATMP_PRE
+  - mkdir $MEDIATMP_PRE
+  - /bin/cp -arf $MEDIA_PRE $MEDIATMP_PRE
+  - sudo chown -R gitlab-runner:www-gitlab $SRC
+  - /bin/rm -rf $SRC_RM
+  - /bin/cp -arf ./* $SRC
+  - cd $SRC
+  - mkdir -p deploy/trustlab/static
+  - /bin/cp -arf $MEDIATMP_POST $MEDIA_POST
+  - sed -i -E "s/('NAME'..')trustlab-dev'/\1trustlab'/" djtrustlab/settings.py
+  - sed -i -E "s/('USER'..').*'/\1trustlab'/" djtrustlab/settings.py
+  - sed -i -E "s/('PASSWORD'..').*'/\1"$PRODUCTION_DBKEY"'/" djtrustlab/settings.py
+  - sed -i "s#DEBUG = True#DEBUG = False#" djtrustlab/settings.py
+  - sed -i "s#STATIC_ROOT = '.*'#STATIC_ROOT = 'deploy/trustlab/static'#" djtrustlab/settings.py
+  - sed -i "s#STATIC_URL = '.*'#STATIC_URL = '/trustlab/static/'#" djtrustlab/settings.py
+  - sed -i "s#MEDIA_ROOT = '.*'#MEDIA_ROOT = 'deploy/trustlab/media'#" djtrustlab/settings.py
+  - sed -i "s#MEDIA_URL = '.*'#MEDIA_URL = '/trustlab/media/'#" djtrustlab/settings.py
+  - sed -i "s#MONGODB_URI = '.*'#MONGODB_URI = '"$MONGO_DBKEY"'#" trustlab/lab/config.py
+  - cd ..
+  - /bin/mv -f src/Pipfile trustlab-env/Pipfile
+  - /bin/mv -f src/Pipfile.lock trustlab-env/Pipfile.lock
+  - /bin/mv -f src/trustlab_host/Pipfile trustlab_host-env/Pipfile
+  - /bin/mv -f src/trustlab_host/Pipfile.lock trustlab_host-env/Pipfile.lock
+  - cd ./trustlab_host-env
+  - export VENV_HOME_DIR=$(pipenv --venv)
+  - source $VENV_HOME_DIR/bin/activate
+  - sudo /usr/local/bin/pipenv install
+  - deactivate
+  - cd ../trustlab-env
+  - export VENV_HOME_DIR=$(pipenv --venv)
+  - source $VENV_HOME_DIR/bin/activate
+  - sudo /usr/local/bin/pipenv install --dev
+  - cd $SRC
+  - python manage.py migrate
+  - python manage.py collectstatic --noinput
+  - deactivate
+  - unset VENV_HOME_DIR
+  - /bin/rm -rf $MEDIATMP_PRE
+  - sudo /bin/systemctl start daphne@trustlab.service
+  - sudo /bin/systemctl restart nginx
+  - sudo /bin/systemctl start trustlab_host.service
+  only:
+    - master

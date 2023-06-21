@@ -1,0 +1,141 @@
+<div class="component-scenario not-displayed" id="c-scenario">
+    <div class="mdl-grid mdl-grid--centered">
+        <div class="mdl-cell mdl-cell--9-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="mdl-card mdl-shadow--2dp mdl-card--stretch" style="width: auto;">
+                <div class="mdl-card__title mdl-card--border">
+                    <h2 class="mdl-card__title-text">Specify Scenario</h2>
+                </div>
+                <div class="mdl-card__supporting-text">
+                    <p>
+                        For demo purposes you can currently only reuse certain prepared scenarios.<br>
+                        In future versions you will be able to also create your own scenario here.
+                    </p>
+                    <p>
+                        <i class="material-icons">new_releases</i>
+                        For demo purposes we only list here scenarios, which are short in total execution time.
+                        All mentioned scenarios of any papers are to be found in the
+                        <a href="https://github.com/ValentinSiegert/aTLAS/tree/master/trustlab/lab/scenarios" target="_blank">github repository</a>
+                        or at the <a href="https://vsr.informatik.tu-chemnitz.de/projects/2020/atlas/" target="_blank">project page</a>.
+                    </p>
+                    <p>
+                        <b>
+                            Please choose a scenario and proceed with starting the laboratory runtime:
+                        </b>
+                    </p>
+                    <form class="mdl-grid">
+                    {% csrf_token %}
+                        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                          <select class="mdl-textfield__input" id="selector-scenario" name="scenario">
+                            <option></option>
+                          </select>
+                          <label class="mdl-textfield__label" for="selector-scenario">Scenario</label>
+                          <span id="selector-scenario-error" class="mdl-textfield__error">Select a Scenario</span>
+                        </div>
+                    </form>
+                    <details id="scenario-details" class="not-displayed">
+                        <summary>Details</summary>
+                        <ul class="mdl-list scenario-ul not-displayed" data-scenario="{{scenario.name|safe}}">
+                          <li class="mdl-list__item">
+                            <span>
+                              <span class="mdl-list__item-primary-content">Scenario Details not loaded</span>
+                              <span class="trustlab-li-body">
+                                If you can read this message there might be a JavaScript error blocking the loading of the scenario details as they are not yet available here.
+                              </span>
+                            </span>
+                          </li>
+                        </ul>
+                    </details>
+                    <script>
+                        // thanks to https://wesbos.com/template-strings-html and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals
+                        const SCENARIO_DETAILS = scenario => `<summary>Details</summary>
+                    <ul class="mdl-list scenario-ul" data-scenario="${scenario.name}">
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Description</span>
+                            <span class="trustlab-li-body">
+                              ${scenario.description}
+                            </span>
+                          </span>
+                        </li>
+                        ${scenario.lazy_note ? `
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Featured Note</span>
+                            <span class="trustlab-li-body">
+                              ${scenario.lazy_note}
+                            </span>
+                          </span>
+                        </li>
+                        ` : `
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Agents</span>
+                            <span class="trustlab-li-body">
+                                The  ${scenario.agents.length} agents:<br><br>
+                                ${scenario.agents.map((agent, i, arr) => `${agent}${i < arr.length - 1 ? ', ' : ''}`).join('')}
+                            </span>
+                          </span>
+                        </li>
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Observations</span>
+                            <span class="trustlab-li-body">
+                              <ol>
+                              ${scenario.observations.map(observation =>
+                                `<li value="${observation.observation_id}">
+                                '${observation.sender}' sends '${observation.receiver}' after ${JSON.stringify(observation.before)}, topics ${JSON.stringify(observation.details['content_trust.topics'])}, message: ${observation.message}
+                                </li>`).join('')}
+                              </ol>
+                            </span>
+                          </span>
+                        </li>
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Trust History</span>
+                            <span class="trustlab-li-body">
+                              ${Object.entries(scenario.history).map(([agent, agent_history], i, arr) => `
+                              ${agent} trusted <br>
+                              <ul>
+                                  ${agent_history.map(history_log => `
+                                  <li>
+                                      ${history_log[0]} on <em>${history_log[1]}</em> with a trust value of ${history_log[2]}
+                                  </li>
+                                  `).join('')}
+                              </ul>${i < arr.length - 1 ? '<br>' : ''}
+                              `).join('')}
+                            </span>
+                          </span>
+                        </li>
+                        <li class="mdl-list__item">
+                          <span>
+                            <span class="mdl-list__item-primary-content">Trust Metrics</span>
+                            <span class="trustlab-li-body">
+                              ${Object.entries(scenario.metrics_per_agent).map(([agent, metrics], i, arr) => `
+                              ${agent} uses the metrics: <br>
+                                  ${Object.entries(metrics).map(([metric, settings]) => `
+                                  <ul>
+                                      ${metric !== '__final__' ? `
+                                      <li>
+                                        ${metric}${Object.entries(settings).length > 0 ? `:<br><div class="metric-details"><pre><code>${JSON.stringify(settings, undefined, 2)}</code></pre></div>` : ''}
+                                      </li>`
+                                      : ''}
+                                  </ul>
+                                      `).join('')}
+                                  ${i < arr.length - 1 ? '<br>' : ''}
+                              `).join('')}
+                            </span>
+                          </span>
+                        </li>
+                    `}
+                    </ul>
+                        `;
+                    </script>
+                    <div class="mdl-card__actions mdl-card--border">
+                        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect" id="btn-run-scenario">Start laboratory runtime</button>
+                        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored mdl-js-ripple-effect neighbour-button" id="btn-cancel-specify">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

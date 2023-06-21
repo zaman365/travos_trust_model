@@ -1,0 +1,14 @@
+[Unit]
+Description=daphne daemon
+After=network.target
+
+[Service]
+User=gitlab-runner
+Group=www-data
+WorkingDirectory=/var/www/trustlab/src/
+ExecStart=/var/www/trustlab/trustlab-env/.venv/bin/daphne --bind 127.0.0.1 --port 8000 --websocket_timeout -1 --websocket_connect_timeout -1 --verbosity 0 djtrustlab.asgi:application
+StandardOut=file:/tmp/daphne-stdout.log
+StandardError=file:/tmp/daphne-error.log
+
+[Install]
+WantedBy=multi-user.target

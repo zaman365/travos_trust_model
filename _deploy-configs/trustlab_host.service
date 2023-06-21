@@ -1,0 +1,13 @@
+[Unit]
+Description=Trustlab_host service. The service supporting the startup of a supervisor at this machine/host for the trustlab aTLAS. (https://vsr.informatik.tu-chemnitz.de/projects/2020/atlas/)
+
+[Service]
+Type=simple
+User=gitlab-runner
+Group=www-data
+WorkingDirectory=/var/www/trustlab/src/trustlab_host
+ExecStart=/bin/sh -c ' \
+          /var/www/trustlab/trustlab_host-env/.venv/bin/python3 -u /var/www/trustlab/src/trustlab_host/supervisor.py 200 -ip $(hostname -I) -hn $(hostname -f)'
+
+[Install]
+WantedBy=multi-user.target
